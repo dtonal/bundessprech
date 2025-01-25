@@ -30,10 +30,11 @@ def parse_rede(element) -> Rede:
     """ Parse the 'rede' element to create a Rede object """
     rede_id = element.get("id")
     redner_element = element.find(".//redner")
-    redner = Redner(redner_id=redner_element.get("id"), name=parse_name(element.find(".//redner/name")))
+    redner_id=redner_element.get("id")
+    redner = Redner(redner_id, name=parse_name(element.find(".//redner/name")))
     rede_text = [p.text for p in element.findall(".//p")]
 
-    return Rede(rede_id=rede_id, redner=redner, rede_text=rede_text)
+    return Rede(rede_id=rede_id, redner_id=redner_id, rede_text=rede_text)
 
 def parse_sitzung(xml_string: str) -> Sitzung:
     """ Parse the XML string and return a Sitzung object """
@@ -57,7 +58,6 @@ def parse_sitzung(xml_string: str) -> Sitzung:
 def clean_text(text):
     # Replace non-breaking spaces and other unwanted characters
     if text:
-        text = text.replace("BÜNDNIS 90/DIE GRUENEN", "DIE GRUENEN")
         return text.replace("\xa0", " ")  # Replacing non-breaking space with regular space
 
     return text
@@ -67,7 +67,7 @@ def main():
     # Parse the XML
     with open(XML_FILE, "r", encoding="utf-8") as file:
         xml_data = file.read()
-        # xml_data = clean_text(xml_data)
+        xml_data = clean_text(xml_data)
 
     try:
         # Parse the XML into a Sitzung object
