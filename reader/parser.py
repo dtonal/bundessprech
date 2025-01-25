@@ -1,8 +1,6 @@
 import xml.etree.ElementTree as ET
-from typing import List
 from parliament import Sitzung, Redner, Rede, Name, Rolle
 
-XML_FILE = "reader/testdata/20208.xml"
 
 def parse_name(element) -> Name:
     """ Parse the 'name' element to create a Name object """
@@ -55,30 +53,4 @@ def parse_sitzung(xml_string: str) -> Sitzung:
 
     return sitzung
 
-def clean_text(text):
-    # Replace non-breaking spaces and other unwanted characters
-    if text:
-        return text.replace("\xa0", " ")  # Replacing non-breaking space with regular space
 
-    return text
-
-
-def main():
-    # Parse the XML
-    with open(XML_FILE, "r", encoding="utf-8") as file:
-        xml_data = file.read()
-        xml_data = clean_text(xml_data)
-
-    try:
-        # Parse the XML into a Sitzung object
-        sitzung = parse_sitzung(xml_data)
-
-        # Print the result
-        print(sitzung)
-
-    except Exception as e:
-        print(f"Error reading or validating XML: {e}")
-
-
-if __name__ == "__main__":
-    main()
