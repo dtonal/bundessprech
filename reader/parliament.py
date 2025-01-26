@@ -1,8 +1,7 @@
 # bundessprech_reader/parliament.py
 
 from enum import Enum
-from typing import Optional
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
@@ -11,6 +10,29 @@ Base = declarative_base()
 # Base-Klasse für SQLAlchemy-Modelle
 Base = declarative_base()
 
+
+class Fraktion(Enum):
+    CDU = "CDU"
+    SPD = "SPD"
+    GRUENE = "Grüne"
+    FDP = "FDP"
+    DIE_LINKE = "Die Linke"
+    AfD = "AfD"
+    BSW = "BSW"
+    OTHER = "Other"
+
+    @staticmethod
+    def from_string(value: str):
+        # Ensure the string matches one of the enum values, case-insensitively
+        for fraktion in Fraktion:
+            if fraktion.value.lower() == value.lower():
+                return fraktion
+        if "grüne" in value.lower():
+            return Fraktion.GRUENE
+        if "cdu" in value.lower():
+            return Fraktion.CDU
+        raise ValueError(f"Fraktion with value '{value}' not found.")
+
 class Sitzung(Base):
     __tablename__ = "sitzung"
 
@@ -18,7 +40,10 @@ class Sitzung(Base):
     wahlperiode = Column(Integer, nullable=False)
     sitzungsnummer = Column(Integer, nullable=False)
     datum = Column(Date, nullable=False)
-    reden = relationship("Rede", back_populates="sitzung")  # Beziehung zu Rede
+    reden = relationship("Rede", 
+                         back_populates="sitzung",
+                         cascade="all, delete-orphan",  # Enable cascading
+                         )  # Beziehung zu Rede
 
     def __init__(self, wahlperiode, sitzungsnummer, datum, reden=None):
         self.wahlperiode = wahlperiode
@@ -43,14 +68,15 @@ class Rede(Base):
     id = Column(Integer, primary_key=True)
     rede_id = Column(String, unique=True, nullable=False)
     sitzung_id = Column(Integer, ForeignKey("sitzung.id"))
-    rede_text = Column(String)  # Redetext wird als langer String gespeichert
     redner_id = Column(Integer, ForeignKey("redner.id"))
+    rede_text = Column(String)  # Redetext wird als langer String gespeichert
     sitzung = relationship("Sitzung", back_populates="reden")
     redner = relationship("Redner", back_populates="reden")
 
-    def __init__(self, rede_id, redner_id, rede_text=None):
+    def __init__(self, rede_id, redner, rede_text=None):
         self.rede_id = rede_id
         self.rede_text = rede_text or []
+        self.redner = redner
 
     def add_paragraph(self, paragraph):
         self.rede_text.append(paragraph)
@@ -60,20 +86,23 @@ class Rede(Base):
             f"Rede(id={self.rede_id}, text={self.rede_text[:30]}...)"
         )
 
+
 class Redner(Base):
     __tablename__ = "redner"
 
     id = Column(Integer, primary_key=True)
     redner_id = Column(String, unique=True, nullable=False)
     name_id = Column(Integer, ForeignKey("name.id"))
-    fraktion = Column(String, nullable=True)
-    name = relationship("Name", back_populates="redner")
-    reden = relationship("Rede", back_populates="redner")  # Beziehung zu Rede
+        # Use the Enum for Fraktion field
+    fraktion = Column(SQLAlchemyEnum(Fraktion), nullable=True)
+    name = relationship("Name", back_populates="redner",)  # Enable cascading)
+    reden = relationship("Rede", back_populates="redner",
+                         cascade="all, delete-orphan")
 
     def __init__(self, redner_id=None, name=None, fraktion=None):
         self.redner_id = redner_id
         self.name = name
-        self.fraktion = fraktion
+        self.fraktion = Fraktion.from_string(fraktion)
 
     def __repr__(self):
         return (
@@ -94,7 +123,8 @@ class Name(Base):
     fraktion = Column(String, nullable=True)
     rolle_id = Column(Integer, ForeignKey("rolle.id"))
     rolle = relationship("Rolle", back_populates="namen")  # Beziehung zu Rolle
-    redner = relationship("Redner", back_populates="name")  # Beziehung zu Redner
+    redner = relationship("Redner", back_populates="name",
+                          cascade="all, delete-orphan",)  # Beziehung zu Redner
 
     def __init__(
         self,

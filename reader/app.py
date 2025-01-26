@@ -1,4 +1,5 @@
 from parser import parse_sitzung
+from db_access import store_sitzung
 XML_FILE = "reader/testdata/20208.xml"
 
 
@@ -18,7 +19,8 @@ def main():
     try:
         # Parse the XML into a Sitzung object
         sitzung = parse_sitzung(xml_data)
-
+        # Store the parsed Sitzung in DB
+        store_sitzung(sitzung)
         # Print the result
         print(sitzung)
 
